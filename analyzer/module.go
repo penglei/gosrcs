@@ -48,7 +48,7 @@ type GoModule struct {
 	ModDir        string //absolute go module path
 	ModPath       string
 	modFile       *modfile.File
-	replacements  map[string]ModuleLocalReplacement
+	localReplace  map[string]ModuleLocalReplacement
 	pkgsProcessed map[string]bool
 }
 
@@ -69,7 +69,7 @@ func NewModule(modDir string) (*GoModule, error) {
 	}
 
 	// Extract replacements
-	var replacements = make(map[string]ModuleLocalReplacement)
+	var localReplace = make(map[string]ModuleLocalReplacement)
 	for _, replace := range modFile.Replace {
 		// If the replacement path is not a module path (doesn't contain a version),
 		// it's likely a local directory
@@ -78,7 +78,7 @@ func NewModule(modDir string) (*GoModule, error) {
 				OldPath: replace.Old.Path,
 				NewPath: filepath.Join(modDir, replace.New.Path),
 			}
-			replacements[replace.Old.Path] = replacement
+			localReplace[replace.Old.Path] = replacement
 		}
 	}
 
@@ -86,7 +86,7 @@ func NewModule(modDir string) (*GoModule, error) {
 		ModDir:        modDir,
 		ModPath:       modFile.Module.Mod.Path,
 		modFile:       modFile,
-		replacements:  replacements,
+		localReplace:  localReplace,
 		pkgsProcessed: make(map[string]bool),
 	}, nil
 }
@@ -151,19 +151,19 @@ func (m *GoModule) ProcessPackage(pkg *packages.Package, ac *AnalyzeContext) err
 			continue
 		}
 
-		relPath, err := filepath.Rel(m.ModDir, importPkg.Dir)
-		if err == nil && !strings.HasPrefix(relPath, "..") {
-			//If it's under the module, process it internally
+		if importPkg.Module.Path == m.ModPath {
 			if err := m.ProcessPackage(importPkg, ac); err != nil {
 				return err
 			}
 		} else {
+			var err error
 			depModPath := importPkg.Module.Path
-			_, localReplaced := m.replacements[depModPath]
+			_, localReplaced := m.localReplace[depModPath]
 			if localReplaced {
 				localModule, parsed := ac.Cache[depModPath]
 				if !parsed {
 					localModule, err = NewModule(importPkg.Module.Dir)
+					localModule.localReplace = m.localReplace //replace must be applied to dependencies.
 					if err != nil {
 						return fmt.Errorf("failed to parse local module: %w", err)
 					}
