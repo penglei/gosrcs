@@ -8,13 +8,13 @@ import (
 	"gosrcs/analyzer"
 )
 
-func listSources(pkgDir string) ([]analyzer.SourceFile, error) {
+func listSources(pkgDir string, buildFlags []string) ([]analyzer.SourceFile, error) {
 	modDir, err := findGoModDir(pkgDir)
 	if err != nil {
 		return nil, err
 	}
 
-	pkgs, err := analyzer.LoadPackages(modDir, pkgDir)
+	pkgs, err := analyzer.LoadPackages(modDir, pkgDir, buildFlags)
 	if err != nil {
 		return nil, err
 	}

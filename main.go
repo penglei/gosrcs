@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 )
@@ -19,6 +20,11 @@ func RootCommand() *cli.Command {
 				Name:  "base-dir",
 				Value: "./",
 				Usage: "base directory to which every file relative",
+			},
+			&cli.StringSliceFlag{
+				Name:    "tags",
+				Aliases: []string{},
+				Usage:   "tags to be added to the file",
 			},
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -41,7 +47,14 @@ func RootCommand() *cli.Command {
 
 			slog.Info("list go package sources.", "dir", dir)
 
-			sources, err := listSources(dir)
+			var buildFlags []string
+			buildTags := cmd.StringSlice("tags")
+
+			if len(buildTags) > 0 {
+				buildFlags = append(buildFlags, "--tags", strings.Join(buildTags, ","))
+			}
+
+			sources, err := listSources(dir, buildFlags)
 			if err != nil {
 				return err
 			}

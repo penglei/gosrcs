@@ -11,11 +11,12 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func LoadPackages(modDir, pkgDir string) ([]*packages.Package, error) {
+func LoadPackages(modDir, pkgDir string, buildFlags []string) ([]*packages.Package, error) {
 	// Configure package loading
 	config := &packages.Config{
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedImports | packages.NeedModule | packages.NeedEmbedFiles,
-		Dir:  modDir,
+		Mode:       packages.NeedName | packages.NeedFiles | packages.NeedImports | packages.NeedModule | packages.NeedEmbedFiles,
+		Dir:        modDir,
+		BuildFlags: buildFlags,
 	}
 
 	// Load the package and its dependencies
